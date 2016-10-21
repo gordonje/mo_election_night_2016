@@ -20,16 +20,6 @@ with open(results_file_name, 'wb') as f:
 # create a boto3 session (should load your stored credentials automatically)
 session = boto3.Session()
 
-# create a client for interacting with s3
-s3 = session.client('s3')
-
-# upload the results to s3
-s3.upload_file(
-    results_file_name, 
-    "2016-election-results-archive",
-    "2014_data.xml"
-)
-
 # create a soup object for easy parsing of the xml
 soup = BeautifulSoup(response.content, 'xml')
 
@@ -96,3 +86,13 @@ for type_race in soup.findAll('TypeRace'):
         # append race_output to races list of item_data
         item_data['races'].append(race_output)
     table.put_item(Item=item_data)
+
+# create a client for interacting with s3
+s3 = session.client('s3')
+
+# upload the results to s3
+s3.upload_file(
+    results_file_name, 
+    "2016-election-results-archive",
+    "2014_data.xml"
+)
