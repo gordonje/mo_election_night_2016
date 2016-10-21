@@ -1,3 +1,4 @@
+import csv
 import requests
 import boto3
 from bs4 import BeautifulSoup
@@ -7,6 +8,14 @@ from time import mktime
 # switch these two when we get an access key
 # url = 'http://enrarchives.sos.mo.gov/APFeed/Apfeed.asmx/GetElectionResults?'
 url = 'https://raw.githubusercontent.com/gordonje/MO_votes_2014/master/data/feed_data.xml'
+
+# create and load a fips_lookup dict
+fips_lookup = {}
+with open('counties_FIPS.csv', 'r') as f:
+    reader = csv.DictReader(f)
+
+    for row in reader:
+        fips_lookup[row['County_Name']] = row['FIPS']
 
 results_file_name = 'apfeed_results.xml'
 
@@ -66,6 +75,11 @@ for type_race in soup.findAll('TypeRace'):
                 'total_precincts': results.find('TotalPrecincts').text.strip(),
                 'candidates': [],
             }
+
+            # look up the fips by county name and add the k/v to output
+            county_output['fips'] = fips_lookup[
+                county_output['name']
+            ]
 
             # loop over the <Party> tags inside the <CountyResults> tag
             for party in results.find_all('Party'):
