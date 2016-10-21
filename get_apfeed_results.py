@@ -32,6 +32,8 @@ session = boto3.Session()
 # create a soup object for easy parsing of the xml
 soup = BeautifulSoup(response.content, 'xml')
 
+# print soup.prettify()
+
 # get the last update value and parse it into a datetime object
 last_updated = parsedate(
     soup.find('ElectionResults')['LastUpdated'],
@@ -90,7 +92,7 @@ for type_race in soup.findAll('TypeRace'):
                 county_output['candidates'].append(
                     {
                         'party': party.find('PartyName').text.strip(),
-                        'id': party.find('Candidate').text.strip(),
+                        'id': party.find('CandidateID').text.strip(),
                         'name': candidate.find('LastName').text.strip(),
                         'votes': candidate.find('YesVotes').text.strip(),
                     }
@@ -104,7 +106,7 @@ for type_race in soup.findAll('TypeRace'):
 # create a client for interacting with s3
 s3 = session.client('s3')
 
-# upload the results to s3
+# upload the xml results to s3
 s3.upload_file(
     results_file_name, 
     "2016-election-results-archive",
