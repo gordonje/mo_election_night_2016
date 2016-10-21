@@ -7,7 +7,7 @@ session = boto3.Session()
 dynamodb = session.resource('dynamodb')
 
 table = dynamodb.create_table(
-    TableName='election_results3',
+    TableName='election_results',
     KeySchema=[
                 {
             'AttributeName': 'race_type',
