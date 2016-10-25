@@ -1,3 +1,6 @@
+"""
+Process for fetching, parsing and saving results data from the SoS APfeed.
+"""
 import csv
 import requests
 import boto3
@@ -31,8 +34,6 @@ session = boto3.Session()
 
 # create a soup object for easy parsing of the xml
 soup = BeautifulSoup(response.content, 'xml')
-
-# print soup.prettify()
 
 # get the last update value and parse it into a datetime object
 last_updated = parsedate(
@@ -75,7 +76,6 @@ for type_race in soup.findAll('TypeRace'):
                 'name': county.find('CountyName').text.strip(),
                 'reporting_precincts': results.find('ReportingPrecincts').text.strip(),
                 'total_precincts': results.find('TotalPrecincts').text.strip(),
-                'candidates': [],
             }
 
             # look up the fips by county name and add the k/v to output
@@ -83,20 +83,28 @@ for type_race in soup.findAll('TypeRace'):
                 county_output['name']
             ]
 
-            # loop over the <Party> tags inside the <CountyResults> tag
-            for party in results.find_all('Party'):
-                # find the <Candidate> tag
-                candidate = party.find('Candidate')
+            # if it's a ballot issue, add key/values for yes and no votes
+            if item_data['race_type'] == "Ballot Issues":
+                county_output['yes_votes'] = results.find('Party').find('Candidate').find('YesVotes').text.strip()
+                county_output['no_votes'] = results.find('Party').find('Candidate').find('NoVotes').text.strip()
+            # otherwise keep a list of all the candidates
+            else:
+                county_output['candidates'] = []
 
-                # append candidate dict to candidates list of county_output
-                county_output['candidates'].append(
-                    {
-                        'party': party.find('PartyName').text.strip(),
-                        'id': party.find('CandidateID').text.strip(),
-                        'name': candidate.find('LastName').text.strip(),
-                        'votes': candidate.find('YesVotes').text.strip(),
-                    }
-                )
+                # loop over the <Party> tags inside the <CountyResults> tag
+                for party in results.find_all('Party'):
+                    # find the <Candidate> tag
+                    candidate = party.find('Candidate')
+
+                    # append candidate dict to candidates list of county_output
+                    county_output['candidates'].append(
+                        {
+                            'party': party.find('PartyName').text.strip(),
+                            'id': party.find('CandidateID').text.strip(),
+                            'name': candidate.find('LastName').text.strip(),
+                            'votes': candidate.find('YesVotes').text.strip(),
+                        }
+                    )
             # append county_output to counties list of race_output
             race_output['counties'].append(county_output)
         # append race_output to races list of item_data
