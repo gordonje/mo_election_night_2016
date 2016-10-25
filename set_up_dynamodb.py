@@ -1,7 +1,7 @@
 import boto3
 
 # create a boto3 session (should load your stored credentials automatically)
-session = boto3.Session()
+session = boto3.Session(profile_name='kbia')
 
 # create a client for interacting with dynamodb
 dynamodb = session.resource('dynamodb')
@@ -35,4 +35,4 @@ table = dynamodb.create_table(
     }
 )
 
-table.meta.client.get_waiter('table_exists').wait(TableName='election_results3')
+table.meta.client.get_waiter('table_exists').wait(TableName='election_results')

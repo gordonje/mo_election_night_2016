@@ -30,7 +30,7 @@ with open(results_file_name, 'wb') as f:
     f.write(response.content)
 
 # create a boto3 session (should load your stored credentials automatically)
-session = boto3.Session()
+session = boto3.Session(profile_name='kbia')
 
 # create a soup object for easy parsing of the xml
 soup = BeautifulSoup(response.content, 'xml')
@@ -117,6 +117,6 @@ s3 = session.client('s3')
 # upload the xml results to s3
 s3.upload_file(
     results_file_name, 
-    "2016-election-results-archive",
+    "am-election-results-2016",
     "2014_data.xml"
 )
