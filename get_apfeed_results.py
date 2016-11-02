@@ -1,16 +1,16 @@
 """
 Process for fetching, parsing and saving results data from the SoS APfeed.
 """
+import os
 import csv
 import requests
 import boto3
 from bs4 import BeautifulSoup
+from datetime import datetime
 from dateparser import parse as parsedate
 from time import mktime
 
-# switch these two when we get an access key
-# url = 'http://enrarchives.sos.mo.gov/APFeed/Apfeed.asmx/GetElectionResults?'
-url = 'https://raw.githubusercontent.com/gordonje/mo_election_night_2016/master/archive_2014/feed_data_2014-11-05-961.xml'
+url = 'http://enrarchives.sos.mo.gov/APFeed/Apfeed.asmx/GetElectionResults?'
 
 # create and load a fips_lookup dict
 fips_lookup = {}
@@ -20,17 +20,26 @@ with open('counties_FIPS.csv', 'r') as f:
     for row in reader:
         fips_lookup[row['County_Name']] = row['FIPS']
 
-results_file_name = 'apfeed_results.xml'
+# use the test key, unless it's election day
+if datetime.now().date().isoformat() == '2016-11-08':
+    payload = {'AccessKey': os.environ['APFEED_LIVE_KEY']}
+else:
+    payload = {'AccessKey': os.environ['APFEED_TEST_KEY']}
 
 # make a get request for results from the APfeed
-response = requests.get(url) # also pass in the access key here (once we get it)
+response = requests.get(
+    url,
+    params=payload
+)
 
 # save the response contents locally
+results_file_name = 'apfeed_results.xml'
+
 with open(results_file_name, 'wb') as f:
     f.write(response.content)
 
-# create a boto3 session (should load your stored credentials automatically)
-session = boto3.Session(profile_name='kbia')
+# create a boto3 session (should load your stored credentials from env)
+session = boto3.Session()
 
 # create a soup object for easy parsing of the xml
 soup = BeautifulSoup(response.content, 'xml')
@@ -48,7 +57,7 @@ last_updated = parsedate(
 # create a client for interacting with dynamodb
 dynamodb = session.resource('dynamodb')
 # get the election_results dynamodb table
-table = dynamodb.Table('election_results')
+table = dynamodb.Table(os.environ['DYNAMO_DB_RESULTS_TABLE'])
 
 items_to_save = []
 
@@ -147,6 +156,6 @@ s3 = session.client('s3')
 # upload the xml results to s3
 s3.upload_file(
     results_file_name, 
-    "am-election-results-2016",
+    os.environ['S3_BUCKET_NAME'],
     "2014_data.xml"
 )
