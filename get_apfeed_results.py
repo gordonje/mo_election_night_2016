@@ -10,7 +10,7 @@ from time import mktime
 
 # switch these two when we get an access key
 # url = 'http://enrarchives.sos.mo.gov/APFeed/Apfeed.asmx/GetElectionResults?'
-url = 'https://raw.githubusercontent.com/gordonje/MO_votes_2014/master/data/feed_data.xml'
+url = 'https://raw.githubusercontent.com/gordonje/mo_election_night_2016/master/archive_2014/feed_data_2014-11-05-961.xml'
 
 # create and load a fips_lookup dict
 fips_lookup = {}
@@ -39,7 +39,8 @@ soup = BeautifulSoup(response.content, 'xml')
 last_updated = parsedate(
     soup.find('ElectionResults')['LastUpdated'],
     settings={
-        'TIMEZONE': 'CST',
+        'TIMEZONE': 'GMT',
+        'TO_TIMEZONE': 'CST',
         'RETURN_AS_TIMEZONE_AWARE': True,
     }
 )
@@ -49,12 +50,14 @@ dynamodb = session.resource('dynamodb')
 # get the election_results dynamodb table
 table = dynamodb.Table('election_results')
 
+items_to_save = []
+
 # loop over the <TypeRace> tags
 for type_race in soup.findAll('TypeRace'):
 
     # declare a variable to hold the data for a new table item
     item_data = {
-        'race_type': type_race.find('Type').text.strip(),
+        'race_type': type_race.find('Type').text.strip().replace(' ', '_').lower(),
         # convert late_updated to posix time for fast sorting
         'last_updated': int(mktime(last_updated.timetuple())),
         'races': [],
@@ -84,9 +87,13 @@ for type_race in soup.findAll('TypeRace'):
             ]
 
             # if it's a ballot issue, add key/values for yes and no votes
-            if item_data['race_type'] == "Ballot Issues":
-                county_output['yes_votes'] = results.find('Party').find('Candidate').find('YesVotes').text.strip()
-                county_output['no_votes'] = results.find('Party').find('Candidate').find('NoVotes').text.strip()
+            if item_data['race_type'] == "ballot_issues":
+                county_output['yes_votes'] = int(
+                    results.find('Party').find('Candidate').find('YesVotes').text
+                )
+                county_output['no_votes'] = int(
+                    results.find('Party').find('Candidate').find('NoVotes').text
+                )
             # otherwise keep a list of all the candidates
             else:
                 county_output['candidates'] = []
@@ -102,14 +109,37 @@ for type_race in soup.findAll('TypeRace'):
                             'party': party.find('PartyName').text.strip(),
                             'id': party.find('CandidateID').text.strip(),
                             'name': candidate.find('LastName').text.strip(),
-                            'votes': candidate.find('YesVotes').text.strip(),
+                            'votes': int(candidate.find('YesVotes').text),
                         }
                     )
             # append county_output to counties list of race_output
             race_output['counties'].append(county_output)
         # append race_output to races list of item_data
         item_data['races'].append(race_output)
-    table.put_item(Item=item_data)
+    items_to_save.append(item_data)
+
+for item in items_to_save:
+    for race in item['races']:
+        if item['race_type'] == 'ballot_issues':
+            race['yes_votes'] = 0
+            race['no_votes'] = 0
+
+            for county in race['counties']:
+                race['yes_votes'] += county['yes_votes']
+                race['no_votes'] += county['no_votes']
+        elif race['title'] == 'State Auditor':
+            cand_dict = {}
+            for county in race['counties']:
+                for candidate in county['candidates']:
+                    try:
+                        cand_dict[candidate['id']]
+                    except KeyError:
+                        cand_dict[candidate['id']] = candidate.copy()
+                    else:
+                        cand_dict[candidate['id']]['votes'] += candidate['votes']
+            race['candidates'] = [v for v in cand_dict.itervalues()]
+
+    table.put_item(Item=item)
 
 # create a client for interacting with s3
 s3 = session.client('s3')
