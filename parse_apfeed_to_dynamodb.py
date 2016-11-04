@@ -68,8 +68,8 @@ for election in soup.find_all('ElectionInfo'):
 
                 county_output = {
                     'name': county.find('CountyName').text.strip(),
-                    'reporting_precincts': results.find('ReportingPrecincts').text.strip(),
-                    'total_precincts': results.find('TotalPrecincts').text.strip(),
+                    'reporting_precincts': int(results.find('ReportingPrecincts').text.strip()),
+                    'total_precincts': int(results.find('TotalPrecincts').text.strip()),
                 }
 
                 # look up the fips by county name and add the k/v to output
@@ -108,9 +108,12 @@ for election in soup.find_all('ElectionInfo'):
             # append race_output to races list of the race_type
             race_types[type_name]['races'].append(race_output)
 
-# go back over all the races to aggregate vote tallies
+# go back over all the races to aggregate precinct and vote tallies
 for race_type, data in race_types.iteritems():
     for race in data['races']:
+        race['reporting_precincts'] = 0
+        race['total_precincts'] = 0
+        
         if race_type == 'ballot_issues':
             race['yes_votes'] = 0
             race['no_votes'] = 0
@@ -118,9 +121,13 @@ for race_type, data in race_types.iteritems():
             for county in race['counties']:
                 race['yes_votes'] += county['yes_votes']
                 race['no_votes'] += county['no_votes']
+                race['reporting_precincts'] += county['reporting_precincts']
+                race['total_precincts'] += county['total_precincts']
         else:
             cand_dict = {}
             for county in race['counties']:
+                race['reporting_precincts'] += county['reporting_precincts']
+                race['total_precincts'] += county['total_precincts']
                 for candidate in county['candidates']:
                     try:
                         cand_dict[candidate['id']]
