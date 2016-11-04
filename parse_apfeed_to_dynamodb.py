@@ -6,7 +6,12 @@ import csv
 import boto3
 from bs4 import BeautifulSoup
 from dateparser import parse as parsedate
+from datetime import datetime
 from time import mktime
+from random import randint
+
+# var to check if this election day or after
+real_results = datetime.now().date().isoformat() > '2016-11-08'
 
 # create and load a fips_lookup dict
 fips_lookup = {}
@@ -79,12 +84,16 @@ for election in soup.find_all('ElectionInfo'):
 
                 # if it's a ballot issue, add key/values for yes and no votes
                 if type_name == "ballot_issues":
-                    county_output['yes_votes'] = int(
-                        results.find('Party').find('Candidate').find('YesVotes').text
-                    )
-                    county_output['no_votes'] = int(
-                        results.find('Party').find('Candidate').find('NoVotes').text
-                    )
+                    if real_results:
+                        county_output['yes_votes'] = int(
+                            results.find('Party').find('Candidate').find('YesVotes').text
+                        )
+                        county_output['no_votes'] = int(
+                            results.find('Party').find('Candidate').find('NoVotes').text
+                        )
+                    else: 
+                        county_output['yes_votes'] = randint(100,1000)
+                        county_output['no_votes'] = randint(100,1000)
                 # otherwise keep a list of all the candidates
                 else:
                     county_output['candidates'] = []
@@ -94,15 +103,17 @@ for election in soup.find_all('ElectionInfo'):
                         # find the <Candidate> tag
                         candidate = party.find('Candidate')
 
+                        candidate_output = {
+                            'party': party.find('PartyName').text.strip(),
+                            'id': party.find('CandidateID').text.strip(),
+                            'name': candidate.find('LastName').text.strip(),
+                        }
+                        if real_results:
+                            candidate_output['votes'] = int(candidate.find('YesVotes').text),
+                        else:
+                             candidate_output['votes'] =  randint(100,1000)
                         # append candidate dict to candidates list of county_output
-                        county_output['candidates'].append(
-                            {
-                                'party': party.find('PartyName').text.strip(),
-                                'id': party.find('CandidateID').text.strip(),
-                                'name': candidate.find('LastName').text.strip(),
-                                'votes': int(candidate.find('YesVotes').text),
-                            }
-                        )
+                        county_output['candidates'].append(candidate_output)
                 # append county_output to counties list of race_output
                 race_output['counties'].append(county_output)
             # append race_output to races list of the race_type
