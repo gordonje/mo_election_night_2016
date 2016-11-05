@@ -32,8 +32,7 @@ session = boto3.Session()
 last_updated = parsedate(
     soup.find('ElectionResults')['LastUpdated'],
     settings={
-        'TIMEZONE': 'GMT',
-        'TO_TIMEZONE': 'CST',
+        'TIMEZONE': 'CST',
         'RETURN_AS_TIMEZONE_AWARE': True,
     }
 )
