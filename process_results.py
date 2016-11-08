@@ -29,6 +29,10 @@ else:
         new_results = True
 
 if new_results:
+    print " Caching xml..."
     latest.cache_xml()
+    print " Saving results to dynamodb..."
     latest.save_to_dynamodb()
-    latest.upload_xml_to_s3()
+    # latest.upload_xml_to_s3()
+    print "Done!"
+
