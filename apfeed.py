@@ -79,9 +79,9 @@ class ElectionResults(object):
                 type_name = type_tag.text.strip().replace(' ', '_').lower()
                 for race in race_type.find_all('Race'):
                     if type_name == 'ballot_issues':
-                        new_results = BallotIssueResults(race, type_name, fake=True)
+                        new_results = BallotIssueResults(race, type_name)
                     else:
-                        new_results = CandidateRaceResults(race, type_name, fake=True)
+                        new_results = CandidateRaceResults(race, type_name)
                     new_results.calculate_totals()
 
                     self._races.append(new_results)
