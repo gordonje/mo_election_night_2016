@@ -4,7 +4,8 @@ import hashlib
 import os
 from bs4 import BeautifulSoup
 from datetime import datetime
-from dateparser import parse as parsedate
+from dateutil import parser as parsedate
+from pytz import timezone
 from time import mktime
 from random import randint
 
@@ -39,13 +40,12 @@ class ElectionResults(object):
     @property
     def last_updated(self):
         if not self._last_updated:
-            self._last_updated = parsedate(
-                self.soup.find('ElectionResults')['LastUpdated'],
-                settings={
-                    'TIMEZONE': 'CST',
-                    'RETURN_AS_TIMEZONE_AWARE': True,
-                }
+            central = timezone('US/Central')
+            self._last_updated = parsedate.parse(
+                self.soup.find('ElectionResults')['LastUpdated']
             )
+
+            self._last_updated = central.localize(self._last_updated)
 
         return self._last_updated
 

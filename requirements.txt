@@ -3,7 +3,6 @@ beautifulsoup4==4.5.1
 boto3==1.4.1
 botocore==1.4.63
 colorama==0.3.7
-dateparser==0.5.0
 docutils==0.12
 futures==3.0.5
 jdatetime==1.8.1
