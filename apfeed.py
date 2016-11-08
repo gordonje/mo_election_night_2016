@@ -151,7 +151,7 @@ class RaceResults(object):
             self,
             soup,
             type_name,
-            fake=datetime.now().isoformat() > '2016-11-08',
+            fake=False,
         ):
         self.soup = soup
         self.type = type_name
