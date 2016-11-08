@@ -305,12 +305,17 @@ class CandidateRaceResults(RaceResults):
 
 
 class LegislativeRaceResults(CandidateRaceResults):
+    _district = None
+    
     def __init__(self, *args, **kwargs):
         super(CandidateRaceResults, self).__init__(*args, **kwargs)
 
     @property
     def district(self):
-        return int(self.title.split('- District')[1].strip())
+        if not self._district:
+            self._district = int(self.title.split('- District')[1].strip())
+
+        return self._district
 
 
 class BallotIssueResults(RaceResults):
