@@ -15,6 +15,8 @@ cache = sorted(
     reverse=True
 )
 
+new_results = True
+
 # read in the previous xml and compare
 try:
     previous_xml = cache[0]
@@ -23,8 +25,10 @@ except IndexError:
 else:
     with open(previous_xml, 'rb') as f:
         previous = apfeed.ElectionResults(f.read())
-
     if latest.md5hash != previous.md5hash:
-        latest.cache_xml()
-        latest.save_to_dynamodb()
-        latest.upload_xml_to_s3()
+        new_results = False
+
+if new_results:
+    latest.cache_xml()
+    latest.save_to_dynamodb()
+    latest.upload_xml_to_s3()
