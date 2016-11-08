@@ -15,18 +15,18 @@ cache = sorted(
     reverse=True
 )
 
-new_results = True
+new_results = False
 
 # read in the previous xml and compare
 try:
     previous_xml = cache[0]
 except IndexError:
-    pass
+    new_results = True
 else:
     with open(previous_xml, 'rb') as f:
         previous = apfeed.ElectionResults(f.read())
     if latest.md5hash != previous.md5hash:
-        new_results = False
+        new_results = True
 
 if new_results:
     latest.cache_xml()
