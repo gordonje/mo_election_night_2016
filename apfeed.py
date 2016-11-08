@@ -80,6 +80,10 @@ class ElectionResults(object):
                 for race in race_type.find_all('Race'):
                     if type_name == 'ballot_issues':
                         new_results = BallotIssueResults(race, type_name)
+                    elif type_name in [
+                        'state_senate', 'state_house', 'us_representative'
+                    ]:
+                        new_results = LegislativeRaceResults(race, type_name)
                     else:
                         new_results = CandidateRaceResults(race, type_name)
                     new_results.calculate_totals()
@@ -298,6 +302,15 @@ class CandidateRaceResults(RaceResults):
             self._counties.append(county_output)
 
         return self._counties
+
+
+class LegislativeRaceResults(CandidateRaceResults):
+    def __init__(self, *args, **kwargs):
+        super(CandidateRaceResults, self).__init__(*args, **kwargs)
+
+    @property
+    def district(self):
+        return int(self.title.split('- District')[1].strip())
 
 
 class BallotIssueResults(RaceResults):
